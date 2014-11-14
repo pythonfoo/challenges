@@ -95,8 +95,8 @@ class Bomber:
 			else: #da ist die Wand!!elf!
 				return False
 		while check(self.char, "moveable"):
-			print("Can move: " + self.char)
 			self.move(self.char, 1)
+			return
 		for char in ("a", "w", "d", "s"):
 			if check(char, "destructible"):
 				self.bomb(5)
