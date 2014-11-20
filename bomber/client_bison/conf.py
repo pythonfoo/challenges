@@ -1,0 +1,30 @@
+# screen settings
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+#SCREEN_WIDTH = 1152
+#SCREEN_HEIGHT = 864
+FULLSCREEN = False
+
+# window settings
+WINDOW_POSITION_X = 0
+WINDOW_POSITION_Y = 0
+WINDOW_BORDER = True
+
+# UI settings
+FONT_COLOR = (255, 226, 165)
+
+# controller foo
+TOUCH_SCREEN = True
+
+# game settings
+BLOCKSIZE = 10
+#SNACK_COLOR = (99, 255, 99)  # 'green'
+#SNAKE_COLOR = (245, 101, 44)  # ORANGE
+
+COLOR_BG = (0, 0, 0)     # 'BLACK
+COLOR_WALKABLE = (99, 255, 99)  # 'green'
+COLOR_BOMB = (0, 0, 0)   # black
+COLOR_ME = (245, 0, 0)   # RED
+COLOR_DEST = (245, 101, 44) # ORANGE
+COLOR_SMOKE = (55, 55, 55)  # GRAY
+COLOR_INDESTRUCTABLE = (255, 255, 255)  # WHITE
