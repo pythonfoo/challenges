@@ -78,38 +78,43 @@ class client(object):
 		actions = ['a', 'w', 'b']
 		return random.choice(actions)
 
-	def drawMap(self, map=''):
+	def drawMap(self, mapString=''):
 		# g: Weg
 		# M: unzerstoerbarer Block
 		# W: zerstoerbarer Block
 		# w: zerstoerter Block
+		if mapString is None:
+			return
 
 		#print map.split("\n")
 		rowX = 0
 		rowY = 0
-		for x in map.split("\n"):
-			rowY = 0
-			for y in x:
+		for y in mapString.split("\n"):
+			rowX = 0
+			for x in y:
 
 				relX = rowX * conf.BLOCKSIZE
 				relY = rowY * conf.BLOCKSIZE
 				#print y, relX, relY
 
 				color = None
-				if y == 'g' or y == 'w':
+				if x == 'g' or x == 'w':
 					color = conf.COLOR_WALKABLE
-				elif y == 'W':
+					#pass
+				elif x == 'W':
 					color = conf.COLOR_DEST
-				elif y == 'M':
+				elif x == 'M':
 					color = conf.COLOR_INDESTRUCTABLE
 				else:
-					print 'WAT:', y
+					print 'WAT:', x
 
 				if color:
 					#print relX, relY
 					pygame.draw.rect(self.screen, color, (relX, relY, relX + conf.BLOCKSIZE, relY + conf.BLOCKSIZE))
-				rowY += 1
-			rowX += 1
+				rowX += 1
+			rowY += 1
+		#print rowX,rowY
+
 	def run(self):
 		isRunning = True
 		name = "bot"+str(random.randint(0,1000))
@@ -129,7 +134,7 @@ class client(object):
 
 		self.REST_WITH = self.SCREEN_WIDTH % self.BLOCKSIZE
 		self.REST_HEIGHT = self.SCREEN_HEIGHT % self.BLOCKSIZE
-		self.DRAW_RECT = pygame.Rect(0, 0, self.SCREEN_WIDTH - self.REST_WITH, self.SCREEN_HEIGHT - self.REST_HEIGHT)
+		self.DRAW_RECT = pygame.Rect(0, 0, self.SCREEN_WIDTH, self.SCREEN_HEIGHT)
 		# do fancy window stuff
 		pygame.display.set_caption("pyBomb")
 		#pygame.display.set_icon(pygame.image.load('imgs/bandit.jpg'))
@@ -149,6 +154,7 @@ class client(object):
 		keymap = {pygame.K_UP: 'w', pygame.K_RIGHT: 'd', pygame.K_DOWN: 's', pygame.K_LEFT: 'a',
 		pygame.K_b: 'b'}
 		fuseTimer = 5
+
 		while isRunning:
 			time_passed = clock.tick(50)
 			redrawCount += time_passed
@@ -184,7 +190,7 @@ class client(object):
 			if doActions:
 				doActions += 'm'
 
-			self.screen.fill(BG_COLOR, self.DRAW_RECT)
+
 
 			for cmd in doActions:
 				rawSend = None
@@ -211,9 +217,12 @@ class client(object):
 					self.dSend(rawSend)
 
 				recieved = self.dRecieve()
-				if recieved and len(recieved) > 0:
+				if isinstance(recieved, int):
+					print 'ERROR recieved:', recieved
+				elif recieved and len(recieved) > 0:
 					if cmd == 'm':
 						#print recieved[1]
+						self.screen.fill(BG_COLOR)
 						self.drawMap(recieved[1])
 					elif cmd == '#':
 						print recieved
@@ -226,7 +235,8 @@ class client(object):
 					# otherwise you could change the direction multiple times before the scenery changes and upates
 					# strange shit goes on!
 					redrawCount = 0
-				pygame.display.flip()
+
+			pygame.display.flip()
 
 		self.s.close()
 
