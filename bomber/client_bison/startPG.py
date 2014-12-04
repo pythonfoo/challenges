@@ -197,7 +197,7 @@ class client(object):
 					pass
 
 
-			if redrawCount >= 5:
+			if redrawCount >= 5 or len(doActions) > 0:
 				# ONLY move, when the timer elapses!
 				# otherwise you could change the direction multiple times before the scenery changes and upates
 				# strange shit goes on!
