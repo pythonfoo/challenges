@@ -17,6 +17,7 @@ class client(object):
 		self.s = socket.socket()
 		self.s.settimeout(0.08)  # wait x seconds for receiving
 		self.socketEmptyCounter = 0  # Socket disconnect fix!
+		self.unpacker = msgpack.Unpacker()
 
 		# bot Vars
 		self.address = conf.SERVER_IP  # '172.22.27.191' '192.168.1.117'
@@ -48,7 +49,7 @@ class client(object):
 					socketEmptyCounterIn += 1
 					if socketEmptyCounterIn >= 4:
 						self.debug('no rec.:' + str(self.socketEmptyCounter), True)
-						time.sleep(0.02)
+						time.sleep(0.01)
 
 		except socket.timeout:
 			if tmp != '':
@@ -61,11 +62,14 @@ class client(object):
 		# exceptions for discontinuing
 		#if self.socketEmptyCounter >= 42:
 		#	raise RuntimeError('connection loss')
+		answer = None
+		try:
+			self.unpacker.feed(tmp)
+			answer = self.unpacker.unpack()
+		except Exception as ex:
+			pass
 
-		if tmp:
-			return msgpack.loads(tmp)
-		else:
-			return None
+		return answer
 
 	def dSend(self, dictData):
 		if self.stillAlive == False:
@@ -136,7 +140,7 @@ class client(object):
 
 	def run(self):
 		isRunning = True
-		connectAs = { "type": "connect", "username": self.name, "password": self.password}
+		connectAs = { "type": "connect", "username": self.name, "password": self.password, "async": False}
 		self.dSend(connectAs)
 		print self.dRecieve()
 
@@ -203,7 +207,7 @@ class client(object):
 			for cmd in doActions:
 				rawSend = None
 				if cmd == 'w' or cmd == 'a' or cmd == 's' or cmd == 'd':
-					rawSend = { "type": "move", "direction": cmd }
+					rawSend = { "type": "move", "direction": cmd, "distance": 1 }
 
 				if cmd == '?':
 					rawSend = { "type": "whoami" }
