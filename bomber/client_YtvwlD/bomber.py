@@ -30,7 +30,7 @@ import sys
 class Bomber:
 	def __init__(self):
 		self.s = socket()
-		self.s.connect(("172.22.27.191", 8001))
+		self.s.connect(("172.22.27.209", 8001))
 		self.s.send(packb({"type": "connect", "username": "YtvwlD", "password": ""}))
 		self.s.recv(10000)
 		print ("Connected.")
@@ -79,6 +79,7 @@ class Bomber:
 			return
 		#print ("Parsing the map...")
 		self.map = Map(answer[1])
+		self.get_bombs()
 		#print ("Map parsed. ")
 	
 	def receiveandunpack(self):
@@ -105,6 +106,15 @@ class Bomber:
 		self.bombed = 1
 		self.s.send(packb({"type": "bomb", "fuse_time": int(fuse_time)}))
 		self.s.recv(10000)
+	
+	def get_bombs(self):
+		self.s.send(packb({"type": "what_bombs"}))
+		answer = self.receiveandunpack()
+		if not answer[0] == b"WHAT_BOMBS":
+			return
+		for bomb in answer[1]:
+			print("Neue Bombe gefunden: " + bomb)
+			self.map.add_bomb(bomb)
 		
 	def very_intelligent_artificial_intelligence(self):
 		"""Total intelligente künstliche Intelligenz!!!
@@ -189,6 +199,9 @@ class Map(list):
 			for block in line:
 				sys.stdout.write(block.char)
 			sys.stdout.write("\n")
+	
+	def add_bomb(self, entry):
+		self[entry[0][1]][entry[0][0]] = Bomb(*entry[1:3])
 
 class Block():
 	def __init__(self, char):
@@ -197,9 +210,18 @@ class Block():
 		self.destructible = char == "W"
 		#print ("New block! " + str({"moveable": self.moveable, "destructible": self.destructible}))
 
+class Bomb(Block):
+	def __init__(self, update_timer, state, extra_info):
+		Block.__init__(self, "B")
+		#TODO
+
 if __name__ == "__main__":
 	bomber = Bomber()
 	
 	bomber.run()
 	
 	bomber.s.close()
+
+#TODO: um die Ecke laufen
+#TODO: gucken, wo Bomben sind
+
