@@ -30,21 +30,20 @@ import sys
 class Bomber:
 	def __init__(self):
 		self.s = socket()
-		self.s.connect(("172.22.27.209", 8001))
+		self.s.connect(("172.22.27.191", 8001))
 		self.s.send(packb({"type": "connect", "username": "YtvwlD", "password": ""}))
-		self.s.recv(10000)
+		#self.s.recv(10000)
 		print ("Connected.")
 		self.char = ""
 		self.unpacker = Unpacker()
 		self.bombed = False
+		self.state = {}
 	
 	def move(self, direction, distance):
 		self.s.send(packb({"type": "move", "direction": direction, "distance": distance}))
 		if self.bombed:
 				self.bombed += 1
-		answer = self.receiveandunpack()
-		if not answer[0] == b"ACK":
-			return
+		answer = self.receive("ACK")
 		x,y = self.state["left"], self.state["top"]
 		if direction == "a":
 			new_x = x-1
@@ -70,13 +69,17 @@ class Bomber:
 			self.whoami()
 			self.get_Map()
 			self.very_intelligent_artificial_intelligence()
-			
+	
+	def receive(self, command):
+		answer = [None]
+		while not answer[0] == bytes(command.encode("UTF8")):
+			answer = self.receiveandunpack()
+		return answer
+	
 	def get_Map(self):
 		#print("Getting map...")
 		self.s.send(packb({"type": "map"}))
-		answer = self.receiveandunpack()
-		if not answer[0] == b"MAP":
-			return
+		answer = self.receive("MAP")
 		#print ("Parsing the map...")
 		self.map = Map(answer[1])
 		self.get_bombs()
@@ -91,13 +94,12 @@ class Bomber:
 				break
 			except OutOfData:
 				continue
+		print ("Received: " + str(answer))
 		return answer
 	
 	def whoami(self):
 		self.s.send(packb({"type": "whoami"}))
-		answer = self.receiveandunpack()
-		if not answer[0] == b"WHOAMI":
-			return
+		answer = self.receive("WHOAMI")
 		self.state = {"color": answer[1][0], "id": answer[1][1], "top": int(answer[1][2]/10), "left": int(answer[1][3]/10)}
 		print ("whoami: " + str(self.state))
 	
@@ -105,15 +107,13 @@ class Bomber:
 		print("Achtung, Bombe! " + str(fuse_time))
 		self.bombed = 1
 		self.s.send(packb({"type": "bomb", "fuse_time": int(fuse_time)}))
-		self.s.recv(10000)
+		#self.s.recv(10000)
 	
 	def get_bombs(self):
 		self.s.send(packb({"type": "what_bombs"}))
-		answer = self.receiveandunpack()
-		if not answer[0] == b"WHAT_BOMBS":
-			return
+		answer = self.receive("WHAT_BOMBS")
 		for bomb in answer[1]:
-			print("Neue Bombe gefunden: " + bomb)
+			print("Neue Bombe gefunden: " + str(bomb))
 			self.map.add_bomb(bomb)
 		
 	def very_intelligent_artificial_intelligence(self):
@@ -201,7 +201,7 @@ class Map(list):
 			sys.stdout.write("\n")
 	
 	def add_bomb(self, entry):
-		self[entry[0][1]][entry[0][0]] = Bomb(*entry[1:3])
+		self[entry[0][1]][entry[0][0]] = Bomb(*entry[1:4])
 
 class Block():
 	def __init__(self, char):
