@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # coding: utf8
 
-# pixelflut - ein grafischer Pixelflut-Client
+# bomber - eine total clevere KI für ein Bomberspiel
 # Copyright (C) 2014 Niklas Sombert
 #
 # This program is free software: you can redistribute it and/or modify
