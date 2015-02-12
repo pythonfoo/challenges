@@ -31,6 +31,7 @@ class Hysgbakstryd:
 		self.reader, self.writer = yield from asyncio.open_connection("172.22.27.40", 8001)
 		self.writer.write(packb({"type": "connect", "username": "YtvwlD", "password": "", "async": True}))
 		print ("Connected.")
+		self.unpacker = Unpacker()
 		#...
 		asyncio.async(self.receiveandunpack())
 		loop.call_soon(self.run)
