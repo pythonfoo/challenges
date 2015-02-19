@@ -31,18 +31,22 @@ import sys
 class Bomber:
 	@asyncio.coroutine
 	def connect(self):
-		self.reader, self.writer = yield from asyncio.open_connection("172.22.27.191", 8001)
+		self.reader, self.writer = yield from asyncio.open_connection("172.22.27.221", 8001)
 		self.writer.write(packb({"type": "connect", "username": "YtvwlD", "password": "", "async": True}))
 		print ("Connected.")
 		self.char = ""
 		self.unpacker = Unpacker()
 		self.bombed = False
 		self.state = None
+		self.moving = False
+		self.waitforwhoami = False
 		self.map = None
 		asyncio.async(self.receiveandunpack())
 		loop.call_soon(self.run)
 	
 	def move(self, direction, distance):
+		if self.moving:
+			return
 		self.writer.write(packb({"type": "move", "direction": direction, "distance": distance}))
 		if self.bombed:
 				self.bombed += 1
@@ -62,10 +66,13 @@ class Bomber:
 			new_y = y+1
 		else:
 			return False
+		self.moving = True
+		self.waitforwhoami = True
 		while self.state["left"] != new_x and self.state["top"] != new_y:
-			sleep(0.125)
-			self.writer.write(packb({"type": "whoami"}))
+			while self.waitforwhoami:
+				sleep(0.125)
 		print ("Moved: " + str((direction, distance)) + " Distance to bomb: " + str(self.bombed))
+		self.moving = False
 	
 	def run(self):
 		self.writer.write(packb({"type": "whoami"}))
@@ -73,14 +80,18 @@ class Bomber:
 		self.writer.write(packb({"type": "what_bombs"}))
 		if self.map and self.state:
 			self.very_intelligent_artificial_intelligence()
+		sleep(1)
 		loop.call_soon(self.run)
 	
 	def parse(self, answer):
 		if answer[0] == b"MAP":
 			self.map = Map(answer[1])
 		elif answer[0] == b"WHOAMI":
-			self.state = {"color": answer[1][0], "id": answer[1][1], "top": int(answer[1][2]/10), "left": int(answer[1][3]/10)}
+			self.state = {"color": answer[1][0], "id": answer[1][1], "top": int(int(answer[1][2])/10), "left": int(int(answer[1][3])/10)}
+			print(answer[1][2])
+			print(answer[1][3])
 			print ("whoami: " + str(self.state))
+			self.waitforwhoami = False
 		elif answer[0] == b"BOMB":
 			#for bomb in answer[1]:
 				print("Neue Bombe gefunden: " + str(*answer[1:4]))
