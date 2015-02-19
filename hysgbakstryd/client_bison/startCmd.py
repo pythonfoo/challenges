@@ -4,7 +4,13 @@ import time
 import socket
 import msgpack
 import random
-import conf
+import os
+import quoter
+if os.path.isfile('conf_local.py'):
+	import conf_local as conf
+else:
+	import conf
+
 #msgpack-python
 
 class client(object):
@@ -26,6 +32,8 @@ class client(object):
 		self.debug('CONNECTED')
 		#
 		#self.level =
+		self.chats = []
+
 
 	def debug(self, txt, override=True):
 		if self.printDebug or override:
@@ -45,18 +53,14 @@ class client(object):
 					if socketEmptyCounterIn >= 4:
 						self.debug('no rec.:' + str(self.socketEmptyCounter), True)
 						#time.sleep(0.01)
-
 		except socket.timeout:
 			if tmp != '':
 				pass
 				#self.debug('|incomplete command: ' + tmp, True)
-
 		except Exception, e:
 			self.debug('Recieved UNKNOWN ERROR (LEAVING): ' + str(e), True)
 
-		# exceptions for discontinuing
-		#if self.socketEmptyCounter >= 42:
-		#	raise RuntimeError('connection loss')
+
 		answer = None
 		try:
 			self.unpacker.feed(tmp)
@@ -77,8 +81,9 @@ class client(object):
 		return random.choice(actions)
 
 	def aiRand2(self):
-		actions = ['w', 'b']
+		actions = ['t', ]
 		return random.choice(actions)
+
 
 	def run(self):
 		isRunning = True
@@ -94,30 +99,39 @@ class client(object):
 			#cmds = self.aiRand2()
 			for cmd in cmds:
 				rawSend = None
-				if cmd == 'w' or cmd == 'a' or cmd == 's' or cmd == 'd':
-					rawSend = { "type": "move", "direction": cmd }
+				if cmd == 't':
+					if len(self.chats) == 0:
+						self.quoter = quoter.quoter()
+						self.chats = self.quoter.loadRandomQuotes()
+					rawSend = { "type": "shout", "NOOT NOOT": self.chats.pop() }
 
-				if cmd == '?':
-					rawSend = { "type": "whoami" }
+				if cmd == 'l':
+					rawSend = { "type": "set_level", "level": 1 }
 
-				if cmd == 'b':
-					rawSend = { "type": "bomb", "fuse_time": 5 }
+				if cmd == 'w':
+					rawSend = { "type": "set_direction", "direction": "up" }
 
-				if cmd == 'm':
-					rawSend = { "type": "map" }
+				if cmd == 's':
+					rawSend = { "type": "set_direction", "direction": "down" }
 
-				if cmd == '#':
-					rawSend = { "type": "what_bombs" }
+				if cmd == 'a':
+					rawSend = { "type": "set_direction", "direction": "halt" }
 
 				if cmd == 'q':
 					isRunning = False
-				#{ "type": "status", "get": "X" }
 
 				if rawSend:
 					self.dSend(rawSend)
 
 				recieved = self.dRecieve()
 				if recieved and len(recieved) > 0:
+					recCmd = recieved[0]
+
+					if recCmd == 'RESHOUT':
+						if recieved[1] != conf.PLAYER_NAME:
+							print recieved
+					else:
+						print recieved
 					if cmd == 'm':
 						print recieved[1]
 					elif cmd == '#':
@@ -130,26 +144,5 @@ class client(object):
 		self.s.close()
 
 
-#clnt = client()
-#clnt.run()
-def multi():
-	cls = client()
-	cls.run()
-
-from multiprocessing import Process
-
-def runInParallel(*fns):
-	proc = []
-	for fn in fns:
-		p = Process(target=fn)
-		p.start()
-		proc.append(p)
-		time.sleep(1)
-
-	for p in proc:
-		p.join()
-
-#runInParallel(multi, multi, multi)
-multi()
-
-ent = raw_input('done')
+cls = client()
+cls.run()
