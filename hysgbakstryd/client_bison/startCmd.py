@@ -20,7 +20,7 @@ class client(object):
 		self.printDoing = True
 
 		self.s = socket.socket()
-		self.s.settimeout(0.10)  # wait x seconds for receiving
+		self.s.settimeout(0.6)  # wait x seconds for receiving
 		self.socketEmptyCounter = 0  # Socket disconnect fix!
 		self.unpacker = msgpack.Unpacker()
 
@@ -39,6 +39,14 @@ class client(object):
 		if self.printDebug or override:
 			print txt
 
+	def printDict(self, dc, sorted=True):
+		if sorted:
+			for key in dc.iterkeys():
+				print key + ':', dc[key]
+		else:
+			for key, val in dc:
+				print key + ':', val
+
 	def dRecieve(self):
 		if self.stillAlive == False:
 			return False
@@ -46,13 +54,14 @@ class client(object):
 		tmp = ''
 		socketEmptyCounterIn = 0
 		try:
-			while socketEmptyCounterIn <= 5:
+			tmp += self.s.recv(4096)
+			'''while socketEmptyCounterIn <= 5:
 				tmp += self.s.recv(4096)
 				if tmp == '':
 					socketEmptyCounterIn += 1
 					if socketEmptyCounterIn >= 4:
 						self.debug('no rec.:' + str(self.socketEmptyCounter), True)
-						#time.sleep(0.01)
+						#time.sleep(0.01)'''
 		except socket.timeout:
 			if tmp != '':
 				pass
@@ -96,6 +105,9 @@ class client(object):
 
 		while isRunning:
 			cmds = raw_input('cmd:')
+
+			if cmds == '':
+				cmds = ' '
 			#cmds = self.aiRand2()
 			for cmd in cmds:
 				rawSend = None
@@ -103,10 +115,13 @@ class client(object):
 					if len(self.chats) == 0:
 						self.quoter = quoter.quoter()
 						self.chats = self.quoter.loadRandomQuotes()
-					rawSend = { "type": "shout", "NOOT NOOT": self.chats.pop() }
 
-				if cmd == 'l':
-					rawSend = { "type": "set_level", "level": 1 }
+					if len(self.chats) > 0:
+						rawSend = { "type": "shout", "NOOT NOOT": self.chats.pop() }
+					#rawSend = { "type": "shout", "NOOT NOOT": time.time() }
+
+				if cmd.isdigit():
+					rawSend = { "type": "set_level", "level": int(cmd) }
 
 				if cmd == 'w':
 					rawSend = { "type": "set_direction", "direction": "up" }
@@ -116,6 +131,15 @@ class client(object):
 
 				if cmd == 'a':
 					rawSend = { "type": "set_direction", "direction": "halt" }
+
+				#if cmd == 'o':
+				#	rawSend = { "type": "set_direction", "direction": "halt" }
+
+				if cmd == 'g':
+					rawSend = { "type": "get_state" }
+
+				if cmd == 'p':
+					rawSend = { "type": "get_foo" }
 
 				if cmd == 'q':
 					isRunning = False
@@ -130,16 +154,23 @@ class client(object):
 					if recCmd == 'RESHOUT':
 						if recieved[1] != conf.PLAYER_NAME:
 							print recieved
+					elif recCmd == 'STATUS':
+						stateDict = recieved[2][0]
+						#'position': 6, 'direction': 'halt', 'door': 'closed', 'passengers': []
+						#print stateDict
+						self.printDict(stateDict)
 					else:
 						print recieved
+
 					if cmd == 'm':
 						print recieved[1]
 					elif cmd == '#':
 						print recieved
 					elif cmd == '?':
+						pass
 						#self.client.inform("OK", [self.color, self.id, self._top, self._left])
-						print 'state', 'color', 'id', 'top', 'left'
-						print recieved[0], recieved[1][0], recieved[1][1], recieved[1][2], recieved[1][3]
+						#print 'state', 'color', 'id', 'top', 'left'
+						#print recieved[0], recieved[1][0], recieved[1][1], recieved[1][2], recieved[1][3]
 
 		self.s.close()
 
