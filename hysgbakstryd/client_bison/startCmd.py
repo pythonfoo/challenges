@@ -2,7 +2,7 @@ __author__ = 'bison'
 
 import time
 import socket
-import msgpack
+import msgpack  # msgpack-python
 import random
 import os
 import quoter
@@ -11,7 +11,6 @@ if os.path.isfile('conf_local.py'):
 else:
 	import conf
 
-#msgpack-python
 
 class client(object):
 	def __init__(self):
@@ -20,8 +19,7 @@ class client(object):
 		self.printDoing = True
 
 		self.s = socket.socket()
-		self.s.settimeout(0.6)  # wait x seconds for receiving
-		self.socketEmptyCounter = 0  # Socket disconnect fix!
+		self.s.settimeout(0.5)  # wait x seconds for receiving
 		self.unpacker = msgpack.Unpacker()
 
 		# bot Vars
@@ -34,13 +32,12 @@ class client(object):
 		#self.level =
 		self.chats = []
 
-
 	def debug(self, txt, override=True):
 		if self.printDebug or override:
 			print txt
 
-	def printDict(self, dc, sorted=True):
-		if sorted:
+	def printDict(self, dc, sortIt=True):
+		if sortIt:
 			for key in dc.iterkeys():
 				print key + ':', dc[key]
 		else:
@@ -48,20 +45,12 @@ class client(object):
 				print key + ':', val
 
 	def dRecieve(self):
-		if self.stillAlive == False:
+		if self.stillAlive is False:
 			return False
 
 		tmp = ''
-		socketEmptyCounterIn = 0
 		try:
 			tmp += self.s.recv(4096)
-			'''while socketEmptyCounterIn <= 5:
-				tmp += self.s.recv(4096)
-				if tmp == '':
-					socketEmptyCounterIn += 1
-					if socketEmptyCounterIn >= 4:
-						self.debug('no rec.:' + str(self.socketEmptyCounter), True)
-						#time.sleep(0.01)'''
 		except socket.timeout:
 			if tmp != '':
 				pass
@@ -69,18 +58,17 @@ class client(object):
 		except Exception, e:
 			self.debug('Recieved UNKNOWN ERROR (LEAVING): ' + str(e), True)
 
-
 		answer = None
 		try:
 			self.unpacker.feed(tmp)
 			answer = self.unpacker.unpack()
-		except Exception as ex:
+		except:  # Exception as ex:
 			pass
 
 		return answer
 
 	def dSend(self, dictData):
-		if self.stillAlive == False:
+		if self.stillAlive is False:
 			return False
 
 		self.s.send(msgpack.dumps(dictData))
@@ -93,13 +81,12 @@ class client(object):
 		actions = ['t', ]
 		return random.choice(actions)
 
-
 	def run(self):
 		isRunning = True
 		#name = "bot"+str(random.randint(0,1000))
-		name = conf.PLAYER_NAME  #'bison'
+		name = conf.PLAYER_NAME  # 'bison'
 		print 'name:' + name
-		connectAs = { "type": "connect", "username": name, "password": conf.PLAYER_PW}
+		connectAs = {"type": "connect", "username": name, "password": conf.PLAYER_PW}
 		self.dSend(connectAs)
 		print self.dRecieve()
 
@@ -113,33 +100,35 @@ class client(object):
 				rawSend = None
 				if cmd == 't':
 					if len(self.chats) == 0:
-						self.quoter = quoter.quoter()
-						self.chats = self.quoter.loadRandomQuotes()
+						quoterObj = quoter.quoter()
+						self.chats = quoterObj.loadRandomQuotes()
 
 					if len(self.chats) > 0:
-						rawSend = { "type": "shout", "NOOT NOOT": self.chats.pop() }
+						rawSend = {"type": "shout", name + " says: ": self.chats.pop()}
+					else:
+						rawSend = {"type": "shout", "NOOT NOOT": "NOOT NOOT"}
 					#rawSend = { "type": "shout", "NOOT NOOT": time.time() }
 
 				if cmd.isdigit():
-					rawSend = { "type": "set_level", "level": int(cmd) }
+					rawSend = {"type": "set_level", "level": int(cmd)}
 
 				if cmd == 'w':
-					rawSend = { "type": "set_direction", "direction": "up" }
+					rawSend = {"type": "set_direction", "direction": "up"}
 
 				if cmd == 's':
-					rawSend = { "type": "set_direction", "direction": "down" }
+					rawSend = {"type": "set_direction", "direction": "down"}
 
 				if cmd == 'a':
-					rawSend = { "type": "set_direction", "direction": "halt" }
+					rawSend = {"type": "set_direction", "direction": "halt"}
 
 				#if cmd == 'o':
 				#	rawSend = { "type": "set_direction", "direction": "halt" }
 
 				if cmd == 'g':
-					rawSend = { "type": "get_state" }
+					rawSend = {"type": "get_state"}
 
 				if cmd == 'p':
-					rawSend = { "type": "get_foo" }
+					rawSend = {"type": "get_foo"}
 
 				if cmd == 'q':
 					isRunning = False
