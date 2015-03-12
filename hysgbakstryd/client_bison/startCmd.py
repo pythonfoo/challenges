@@ -6,6 +6,7 @@ import msgpack  # msgpack-python
 import random
 import os
 import quoter
+import control_modules
 if os.path.isfile('conf_local.py'):
 	import conf_local as conf
 else:
@@ -73,16 +74,26 @@ class client(object):
 
 		self.s.send(msgpack.dumps(dictData))
 
-	def aiRand(self):
-		actions = ['w', 'a', 's', 'd', 'b']
-		return random.choice(actions)
-
-	def aiRand2(self):
-		actions = ['t', ]
-		return random.choice(actions)
-
 	def run(self):
 		isRunning = True
+
+		print '0: User Input'
+		print "1: random 'ai'"
+		print '2: ai lvl 1'
+		print '3: TEST'
+		gameMode = int(raw_input('select mode:'))
+
+		controller_mod = control_modules.baseControl.baseControl()
+
+		if gameMode == 0:
+			controller_mod = control_modules.user_terminal.user_terminal()
+		elif gameMode == 1:
+			controller_mod = control_modules.ai_random.ai_random()
+		elif gameMode == 2:
+			controller_mod = control_modules.ai_lvl1.ai_lvl1()
+		elif gameMode == 3:
+			controller_mod = control_modules.test.test()
+
 		#name = "bot"+str(random.randint(0,1000))
 		name = conf.PLAYER_NAME  # 'bison'
 		print 'name:' + name
@@ -91,22 +102,26 @@ class client(object):
 		print self.dRecieve()
 
 		while isRunning:
-			cmds = raw_input('cmd:')
+			cmds = ''
+
+			cmds = controller_mod.getCmd()
 
 			if cmds == '':
 				cmds = ' '
+
 			#cmds = self.aiRand2()
 			for cmd in cmds:
 				rawSend = None
 				if cmd == 't':
 					if len(self.chats) == 0:
-						quoterObj = quoter.quoter()
-						self.chats = quoterObj.loadRandomQuotes()
+						pass
+						#quoterObj = quoter.quoter()
+						#self.chats = quoterObj.loadRandomQuotes()
 
 					if len(self.chats) > 0:
 						rawSend = {"type": "shout", name + " says: ": self.chats.pop()}
 					else:
-						rawSend = {"type": "shout", "NOOT NOOT": "NOOT NOOT"}
+						rawSend = {"type": "shout", "NOOT NOOT KEY": "NOOT NOOT VAL"}
 					#rawSend = { "type": "shout", "NOOT NOOT": time.time() }
 
 				if cmd.isdigit():
@@ -121,14 +136,18 @@ class client(object):
 				if cmd == 'a':
 					rawSend = {"type": "set_direction", "direction": "halt"}
 
-				#if cmd == 'o':
-				#	rawSend = { "type": "set_direction", "direction": "halt" }
-
 				if cmd == 'g':
 					rawSend = {"type": "get_state"}
 
 				if cmd == 'p':
 					rawSend = {"type": "get_foo"}
+
+				if cmd == 'h':
+					rawSend = {"type": "help_command"}
+
+				if cmd == 'p':
+					rawSend = {"type": "help_plugin"}
+
 
 				if cmd == 'q':
 					isRunning = False
@@ -148,8 +167,14 @@ class client(object):
 						#'position': 6, 'direction': 'halt', 'door': 'closed', 'passengers': []
 						#print stateDict
 						self.printDict(stateDict)
+					elif recCmd == 'ERR':
+						print 'COMMAND ERROR:', recieved
+						#['ERR', '__master__', "Error while calling set_direction: do_set_level() got an unexpected keyword argument 'direction'"]
+					elif recCmd == 'TRACEBACK':
+						print 'SERVER ERROR:', recieved
+						#['TRACEBACK', '__master__', 'Traceback (most recent call last):\n  File "/home/js/prog/hysbakstryd/hysbakstryd/network.py", line 69, in handle_msg\n    self.game.handle(self.game_client, msg_type, msg_data)\n  File "/home/js/prog/hysbakstryd/hysbakstryd/game.py", line 200, in handle\n    ret = self.command_map[msg_type](client, **msg_data)\n  File "/home/js/prog/hysbakstryd/hysbakstryd/game.py", line 184, in <lambda>\n    self.command_map[command_method_name[3:]] = lambda *args, **kwargs: getattr(plugin, command_method_name)(plugin, *args, **kwargs)\nTypeError: do_set_level() got an unexpected keyword argument \'direction\'\n']
 					else:
-						print recieved
+						print 'unknown:', recCmd, recieved
 
 					if cmd == 'm':
 						print recieved[1]
