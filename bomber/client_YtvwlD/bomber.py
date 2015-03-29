@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # coding: utf8
 
-# pixelflut - ein grafischer Pixelflut-Client
+# bomber - eine total clevere KI für ein Bomberspiel
 # Copyright (C) 2014 Niklas Sombert
 #
 # This program is free software: you can redistribute it and/or modify
@@ -19,6 +19,7 @@
 
 from socket import socket
 from msgpack import packb, Unpacker
+import asyncio
 try:
 	from msgpack.exceptions import OutOfData
 except:
@@ -28,23 +29,28 @@ from time import sleep
 import sys
 
 class Bomber:
-	def __init__(self):
-		self.s = socket()
-		self.s.connect(("172.22.27.191", 8001))
-		self.s.send(packb({"type": "connect", "username": "YtvwlD", "password": ""}))
-		self.s.recv(10000)
+	@asyncio.coroutine
+	def connect(self):
+		self.reader, self.writer = yield from asyncio.open_connection("172.22.27.221", 8001)
+		self.writer.write(packb({"type": "connect", "username": "YtvwlD", "password": "", "async": True}))
 		print ("Connected.")
 		self.char = ""
 		self.unpacker = Unpacker()
 		self.bombed = False
+		self.state = None
+		self.moving = False
+		self.waitforwhoami = False
+		self.map = None
+		asyncio.async(self.receiveandunpack())
+		loop.call_soon(self.run)
 	
 	def move(self, direction, distance):
-		self.s.send(packb({"type": "move", "direction": direction, "distance": distance}))
+		if self.moving:
+			return
+		self.writer.write(packb({"type": "move", "direction": direction, "distance": distance}))
 		if self.bombed:
 				self.bombed += 1
-		answer = self.receiveandunpack()
-		if not answer[0] == b"ACK":
-			return
+		#answer = self.receive("ACK")
 		x,y = self.state["left"], self.state["top"]
 		if direction == "a":
 			new_x = x-1
@@ -60,51 +66,58 @@ class Bomber:
 			new_y = y+1
 		else:
 			return False
+		self.moving = True
+		self.waitforwhoami = True
 		while self.state["left"] != new_x and self.state["top"] != new_y:
-			sleep(0.125)
-			self.whoami()
+			while self.waitforwhoami:
+				sleep(0.125)
 		print ("Moved: " + str((direction, distance)) + " Distance to bomb: " + str(self.bombed))
+		self.moving = False
 	
 	def run(self):
-		while True:
-			self.whoami()
-			self.get_Map()
+		self.writer.write(packb({"type": "whoami"}))
+		self.writer.write(packb({"type": "map"}))
+		self.writer.write(packb({"type": "what_bombs"}))
+		if self.map and self.state:
 			self.very_intelligent_artificial_intelligence()
-			
-	def get_Map(self):
-		#print("Getting map...")
-		self.s.send(packb({"type": "map"}))
-		answer = self.receiveandunpack()
-		if not answer[0] == b"MAP":
-			return
-		#print ("Parsing the map...")
-		self.map = Map(answer[1])
-		#print ("Map parsed. ")
+		sleep(1)
+		loop.call_soon(self.run)
 	
+	def parse(self, answer):
+		if answer[0] == b"MAP":
+			self.map = Map(answer[1])
+		elif answer[0] == b"WHOAMI":
+			self.state = {"color": answer[1][0], "id": answer[1][1], "top": int(int(answer[1][2])/10), "left": int(int(answer[1][3])/10)}
+			print(answer[1][2])
+			print(answer[1][3])
+			print ("whoami: " + str(self.state))
+			self.waitforwhoami = False
+		elif answer[0] == b"BOMB":
+			#for bomb in answer[1]:
+				print("Neue Bombe gefunden: " + str(*answer[1:4]))
+				self.map.add_bomb(*answer[1:4])
+	
+	@asyncio.coroutine
 	def receiveandunpack(self):
-		while True:
-			try:
-				recv = self.s.recv(100000)
-				self.unpacker.feed(recv)
-				answer = self.unpacker.unpack()
-				break
-			except OutOfData:
-				continue
-		return answer
-	
-	def whoami(self):
-		self.s.send(packb({"type": "whoami"}))
-		answer = self.receiveandunpack()
-		if not answer[0] == b"WHOAMI":
-			return
-		self.state = {"color": answer[1][0], "id": answer[1][1], "top": int(answer[1][2]/10), "left": int(answer[1][3]/10)}
-		print ("whoami: " + str(self.state))
+		while not self.reader.at_eof():
+			while True:
+				try:
+					recv = yield from self.reader.read(1024)
+					self.unpacker.feed(recv)
+					answer = self.unpacker.unpack()
+					break
+				except OutOfData:
+					continue
+			#print ("Received: " + str(answer))
+			self.parse(answer)
+			
+		print ("Connection closed.")
+		self.writer = None
 	
 	def bomb(self, fuse_time):
 		print("Achtung, Bombe! " + str(fuse_time))
 		self.bombed = 1
-		self.s.send(packb({"type": "bomb", "fuse_time": int(fuse_time)}))
-		self.s.recv(10000)
+		self.writer.write(packb({"type": "bomb", "fuse_time": int(fuse_time)}))
 		
 	def very_intelligent_artificial_intelligence(self):
 		"""Total intelligente künstliche Intelligenz!!!
@@ -134,7 +147,7 @@ class Bomber:
 				return result
 			else: #da ist die Wand!!elf!
 				return False
-		while check(self.char, "moveable"):
+		if check(self.char, "moveable"):
 			self.move(self.char, 1)
 			return
 		print (self.bombed)
@@ -152,10 +165,10 @@ class Bomber:
 			self.bomb(5)
 		for char in ("a", "w", "d", "s"): #a: left, w: up, d: right, s: down
 			if check(char, "moveable"):
-				#print("Moving possible: " + char)
+				print("Moving possible: " + char)
 				possibilities.append(char)
-			#else:
-			#	print("Moving not possible: " + char)
+			else:
+				print("Moving not possible: " + char)
 		if not possibilities:
 			self.bomb(1)
 			self.char = ""
@@ -189,6 +202,9 @@ class Map(list):
 			for block in line:
 				sys.stdout.write(block.char)
 			sys.stdout.write("\n")
+	
+	def add_bomb(self, entry):
+		self[entry[0][1]][entry[0][0]] = Bomb(*entry)
 
 class Block():
 	def __init__(self, char):
@@ -197,9 +213,20 @@ class Block():
 		self.destructible = char == "W"
 		#print ("New block! " + str({"moveable": self.moveable, "destructible": self.destructible}))
 
+class Bomb(Block):
+	def __init__(self, update_timer, state, extra_info):
+		Block.__init__(self, "B")
+		#TODO
+
 if __name__ == "__main__":
+	loop = asyncio.get_event_loop()
 	bomber = Bomber()
-	
-	bomber.run()
-	
-	bomber.s.close()
+	asyncio.async(bomber.connect())
+	try:
+		loop.run_forever()
+	finally:
+		loop.close()
+
+#TODO: um die Ecke laufen
+#TODO: gucken, wo Bomben sind
+

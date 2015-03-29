@@ -55,3 +55,4 @@ target/
 
 # PyCHarm
 .idea
+conf_local.py
