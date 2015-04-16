@@ -33,17 +33,19 @@ class client(object):
 		#self.level =
 		self.chats = []
 
-	def debug(self, txt, override=True):
-		if self.printDebug or override:
-			print txt
+	def debug(self, strings):
+		if self.printDebug:
+			print time.time(), ':', strings
 
-	def printDict(self, dc, sortIt=True):
+	def getDictAsString(self, dc, sortIt=True):
+		finalStr = ''
 		if sortIt:
 			for key in dc.iterkeys():
-				print key + ':', dc[key]
+				finalStr += key + ':' + str(dc[key]) + "\n"
 		else:
 			for key, val in dc:
-				print key + ':', val
+				finalStr += key + ':' + str(val) + "\n"
+		return finalStr
 
 	def dRecieve(self):
 		if self.stillAlive is False:
@@ -81,6 +83,7 @@ class client(object):
 		print "1: random 'ai'"
 		print '2: ai lvl 1'
 		print '3: TEST'
+		print '4: TEST ALL'
 		gameMode = int(raw_input('select mode:'))
 
 		controller_mod = control_modules.baseControl.baseControl()
@@ -93,6 +96,8 @@ class client(object):
 			controller_mod = control_modules.ai_lvl1.ai_lvl1()
 		elif gameMode == 3:
 			controller_mod = control_modules.test.test()
+		elif gameMode == 4:
+			controller_mod = control_modules.test_all.test_all()
 
 		#name = "bot"+str(random.randint(0,1000))
 		name = conf.PLAYER_NAME  # 'bison'
@@ -107,6 +112,7 @@ class client(object):
 			cmds = controller_mod.getCmd()
 
 			if cmds == '':
+				# we need at least one char to call the reciee function
 				cmds = ' '
 
 			#cmds = self.aiRand2()
@@ -125,7 +131,14 @@ class client(object):
 					#rawSend = { "type": "shout", "NOOT NOOT": time.time() }
 
 				if cmd.isdigit():
-					rawSend = {"type": "set_level", "level": int(cmd)}
+					floor = int(cmd)
+					rawSend = {"type": "set_level", "level": floor}
+
+				if cmd == 'g':
+					rawSend = {"type": "get_state"}
+
+				if cmd == 'f':
+					rawSend = {"type": "get_world_state"}
 
 				if cmd == 'w':
 					rawSend = {"type": "set_direction", "direction": "up"}
@@ -136,8 +149,8 @@ class client(object):
 				if cmd == 'a':
 					rawSend = {"type": "set_direction", "direction": "halt"}
 
-				if cmd == 'g':
-					rawSend = {"type": "get_state"}
+				#if cmd == 'g':
+				#	rawSend = {"type": "get_state"}
 
 				if cmd == 'p':
 					rawSend = {"type": "get_foo"}
@@ -159,22 +172,36 @@ class client(object):
 				if recieved and len(recieved) > 0:
 					recCmd = recieved[0]
 
+					controller_mod.setRawReceived(recieved)
+					controller_mod.setReceived(recCmd, recieved)
+
+					self.debug(('RECIEVED: CMD: "', recCmd, '" -> DATA: ', recieved))
+
 					if recCmd == 'RESHOUT':
 						if recieved[1] != conf.PLAYER_NAME:
-							print recieved
-					elif recCmd == 'STATUS':
-						stateDict = recieved[2][0]
+							self.debug(recieved)
+					elif recCmd == 'state':
+						stateDict = recieved[2]
+						#['state', '__master__', {'username': 'bison', 'direction': 'halt', 'movement_paused': False, 'door': 'closed', 'level': 0.0, 'levels': [5]}]
 						#'position': 6, 'direction': 'halt', 'door': 'closed', 'passengers': []
 						#print stateDict
-						self.printDict(stateDict)
+						self.debug(('state:', self.getDictAsString(stateDict)))
+					elif recCmd == 'help_for_commands' or recCmd == 'help_for_plugins':
+						self.debug(recieved)
+						#unknown: help_for_commands ['help_for_commands', '__master__', ['shout', 'reset_levels', 'set_direction', 'help_command', 'set_level', 'help_plugin']]
+						#unknown: help_for_plugins ['help_for_plugins', '__master__', ['MovementPhase1', 'ShoutPlugin', 'HelpPlugin']]
 					elif recCmd == 'ERR':
-						print 'COMMAND ERROR:', recieved
+						self.debug(('COMMAND ERROR:', recieved))
 						#['ERR', '__master__', "Error while calling set_direction: do_set_level() got an unexpected keyword argument 'direction'"]
 					elif recCmd == 'TRACEBACK':
-						print 'SERVER ERROR:', recieved
+						self.debug(('SERVER ERROR:', recieved))
 						#['TRACEBACK', '__master__', 'Traceback (most recent call last):\n  File "/home/js/prog/hysbakstryd/hysbakstryd/network.py", line 69, in handle_msg\n    self.game.handle(self.game_client, msg_type, msg_data)\n  File "/home/js/prog/hysbakstryd/hysbakstryd/game.py", line 200, in handle\n    ret = self.command_map[msg_type](client, **msg_data)\n  File "/home/js/prog/hysbakstryd/hysbakstryd/game.py", line 184, in <lambda>\n    self.command_map[command_method_name[3:]] = lambda *args, **kwargs: getattr(plugin, command_method_name)(plugin, *args, **kwargs)\nTypeError: do_set_level() got an unexpected keyword argument \'direction\'\n']
+					elif recCmd == 'LEVELS':
+						self.debug(('LEVELS:', recieved))
+					elif recCmd == 'DIRECTION':
+						self.debug(('DIRECTION:', recieved))
 					else:
-						print 'unknown:', recCmd, recieved
+						self.debug(('unknown:', recCmd, recieved))
 
 					if cmd == 'm':
 						print recieved[1]

@@ -3,3 +3,4 @@ import ai_random
 import baseControl
 import user_terminal
 import test
+import test_all
