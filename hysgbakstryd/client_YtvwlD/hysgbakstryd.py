@@ -28,7 +28,7 @@ except:
 class Hysgbakstryd:
 	@asyncio.coroutine
 	def connect(self):
-		self.reader, self.writer = yield from asyncio.open_connection("172.22.27.233", 8001)
+		self.reader, self.writer = yield from asyncio.open_connection("172.22.27.144", 8001)
 		self.writer.write(packb({"type": "connect", "username": "YtvwlD", "password": "", "async": True}))
 		print ("Connected.")
 		self.unpacker = Unpacker()
@@ -36,6 +36,7 @@ class Hysgbakstryd:
 		asyncio.async(self.receiveandunpack())
 		loop.call_soon(self.run)
 		self.writer.write(packb({"type": "set_direction", "direction": "up"})) #oder down oder halt
+		self.writer.write(packb({"type": "shout", "foo": "bar"}))
 		
 	def run(self):
 		
@@ -43,7 +44,11 @@ class Hysgbakstryd:
 		loop.call_soon(self.run)
 	
 	def parse(self, answer):
-		pass
+		command = answer[0].decode()
+		if command == "RESHOUT":
+			username = answer[1].decode()
+			content = answer[2:]
+			print ("[SHOUT] {} said: {}".format(username, repr(content)))
 	
 	@asyncio.coroutine
 	def receiveandunpack(self):
@@ -57,6 +62,7 @@ class Hysgbakstryd:
 				except OutOfData:
 					continue
 			#print ("Received: " + str(answer))
+			#WARN: This produces bytestrings!
 			self.parse(answer)
 
 if __name__ == "__main__":
