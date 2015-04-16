@@ -28,6 +28,7 @@ except:
 class Hysgbakstryd:
 	@asyncio.coroutine
 	def connect(self):
+		self.state = None
 		self.reader, self.writer = yield from asyncio.open_connection("172.22.27.144", 8001)
 		self.writer.write(packb({"type": "connect", "username": "YtvwlD", "password": "", "async": True}))
 		print ("Connected.")
@@ -35,20 +36,42 @@ class Hysgbakstryd:
 		#...
 		asyncio.async(self.receiveandunpack())
 		loop.call_soon(self.run)
-		self.writer.write(packb({"type": "set_direction", "direction": "up"})) #oder down oder halt
+		#self.move("up") #oder down oder halt
 		self.writer.write(packb({"type": "shout", "foo": "bar"}))
+		self.writer.write(packb({"type": "get_state"}))
+		#loop.call_soon(lambda: self.go_to_level(5))
 		
 	def run(self):
-		
+		if not self.state:
+			loop.call_soon(self.run)
+			return
 		#...
-		loop.call_soon(self.run)
+		#loop.call_soon(self.run)
+		loop.call_soon(lambda: self.go_to_level(5))
+		#print ("Ready.")
 	
 	def parse(self, answer):
 		command = answer[0].decode()
-		if command == "RESHOUT":
-			username = answer[1].decode()
-			content = answer[2:]
+		username = answer[1].decode()
+		content = answer[2]
+		if command == "RESHOUT":			
 			print ("[SHOUT] {} said: {}".format(username, repr(content)))
+		if command == "state":
+			self.state = content
+	
+	def go_to_level(self, level):
+		assert self.state is not None
+		self.writer.write(packb({"type": "set_level", "level": level}))
+		if level > self.state[b"level"]:
+			direction = "up"
+		elif level < self.state[b"level"]:
+			direction = "down"
+		else:
+			print ("Well, nothing to do...")
+		self.move(direction)
+	
+	def move(self, direction):
+		self.writer.write(packb({"type": "set_direction", "direction": direction}))
 	
 	@asyncio.coroutine
 	def receiveandunpack(self):
@@ -61,7 +84,7 @@ class Hysgbakstryd:
 					break
 				except OutOfData:
 					continue
-			#print ("Received: " + str(answer))
+			print ("Received: " + str(answer))
 			#WARN: This produces bytestrings!
 			self.parse(answer)
 
