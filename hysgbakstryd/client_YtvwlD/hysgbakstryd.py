@@ -28,15 +28,17 @@ except:
 class Hysgbakstryd:
 	@asyncio.coroutine
 	def connect(self):
-		self.reader, self.writer = yield from asyncio.open_connection("172.22.27.40", 8001)
+		self.reader, self.writer = yield from asyncio.open_connection("172.22.27.233", 8001)
 		self.writer.write(packb({"type": "connect", "username": "YtvwlD", "password": "", "async": True}))
 		print ("Connected.")
 		self.unpacker = Unpacker()
 		#...
 		asyncio.async(self.receiveandunpack())
 		loop.call_soon(self.run)
+		self.writer.write(packb({"type": "set_direction", "direction": "up"})) #oder down oder halt
 		
 	def run(self):
+		
 		#...
 		loop.call_soon(self.run)
 	
