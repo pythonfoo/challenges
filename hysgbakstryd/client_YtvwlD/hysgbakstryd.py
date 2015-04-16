@@ -19,6 +19,7 @@
 
 from socket import socket
 from msgpack import packb, Unpacker
+from time import sleep
 import asyncio
 try:
 	from msgpack.exceptions import OutOfData
@@ -39,15 +40,17 @@ class Hysgbakstryd:
 		#self.move("up") #oder down oder halt
 		self.writer.write(packb({"type": "shout", "foo": "bar"}))
 		self.writer.write(packb({"type": "get_state"}))
-		#loop.call_soon(lambda: self.go_to_level(5))
+		loop.call_later(5, lambda: self.go_to_level(8))
+		loop.call_later(10, lambda: self.go_to_level(4))
+
 		
 	def run(self):
 		if not self.state:
 			loop.call_soon(self.run)
 			return
 		#...
-		#loop.call_soon(self.run)
-		loop.call_soon(lambda: self.go_to_level(5))
+		self.writer.write(packb({"type": "get_state"}))
+		loop.call_later(2, self.run)
 		#print ("Ready.")
 	
 	def parse(self, answer):
