@@ -77,6 +77,7 @@ class Hysgbakstryd:
 
 	def move(self, direction):
 		self.writer.write(packb({"type": "set_direction", "direction": direction}))
+		self.writer.write(packb({"type": "move"}))
 
 	@asyncio.coroutine
 	def receiveandunpack(self):
