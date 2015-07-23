@@ -21,6 +21,7 @@ from socket import socket
 from msgpack import packb, Unpacker
 from time import sleep
 import asyncio
+from zeroconf import Zeroconf
 try:
 	from msgpack.exceptions import OutOfData
 except:
@@ -30,9 +31,10 @@ class Hysgbakstryd:
 	@asyncio.coroutine
 	def connect(self):
 		self.state = None
-		self.reader, self.writer = yield from asyncio.open_connection("172.22.27.144", 8001)
+		self.reader, self.writer = yield from asyncio.open_connection("gimel", 8000)
 		self.writer.write(packb({"type": "connect", "username": "YtvwlD", "password": "", "async": True}))
 		print ("Connected.")
+		self.writer.write(packb({"type": "activate"}))
 		self.unpacker = Unpacker()
 		#...
 		asyncio.async(self.receiveandunpack())
@@ -43,7 +45,7 @@ class Hysgbakstryd:
 		loop.call_later(5, lambda: self.go_to_level(8))
 		loop.call_later(10, lambda: self.go_to_level(4))
 
-		
+
 	def run(self):
 		if not self.state:
 			loop.call_soon(self.run)
@@ -52,16 +54,16 @@ class Hysgbakstryd:
 		self.writer.write(packb({"type": "get_state"}))
 		loop.call_later(2, self.run)
 		#print ("Ready.")
-	
+
 	def parse(self, answer):
 		command = answer[0].decode()
 		username = answer[1].decode()
 		content = answer[2]
-		if command == "RESHOUT":			
+		if command == "RESHOUT":
 			print ("[SHOUT] {} said: {}".format(username, repr(content)))
 		if command == "state":
 			self.state = content
-	
+
 	def go_to_level(self, level):
 		assert self.state is not None
 		self.writer.write(packb({"type": "set_level", "level": level}))
@@ -72,10 +74,10 @@ class Hysgbakstryd:
 		else:
 			print ("Well, nothing to do...")
 		self.move(direction)
-	
+
 	def move(self, direction):
 		self.writer.write(packb({"type": "set_direction", "direction": direction}))
-	
+
 	@asyncio.coroutine
 	def receiveandunpack(self):
 		while not self.reader.at_eof():
