@@ -1,3 +1,6 @@
+
+Start: python -m SimpleHTTPServer
+
 ## URLs ##
 
 PyChromecast
