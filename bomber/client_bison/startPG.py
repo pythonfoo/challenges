@@ -5,7 +5,14 @@ import socket
 import msgpack
 import random
 import pygame
-import conf
+
+import os
+
+if os.path.isfile('conf_local.py'):
+	print 'import conf local'
+	import conf_local as conf
+else:
+	import conf
 
 
 class client(object):
@@ -49,19 +56,15 @@ class client(object):
 					socketEmptyCounterIn += 1
 					if socketEmptyCounterIn >= 4:
 						self.debug('no rec.:' + str(self.socketEmptyCounter), True)
-						time.sleep(0.01)
-
+						#time.sleep(0.01)
 		except socket.timeout:
 			if tmp != '':
 				pass
 				#self.debug('|incomplete command: ' + tmp, True)
-
 		except Exception, e:
 			self.debug('Recieved UNKNOWN ERROR (LEAVING): ' + str(e), True)
 
-		# exceptions for discontinuing
-		#if self.socketEmptyCounter >= 42:
-		#	raise RuntimeError('connection loss')
+
 		answer = None
 		try:
 			self.unpacker.feed(tmp)
@@ -196,8 +199,8 @@ class client(object):
 				else:
 					pass
 
-
-			if redrawCount >= 5 or len(doActions) > 0:
+			redrawCount += 1
+			if redrawCount >= 2:  #or len(doActions) == 0:
 				# ONLY move, when the timer elapses!
 				# otherwise you could change the direction multiple times before the scenery changes and upates
 				# strange shit goes on!
