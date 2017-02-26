@@ -56,7 +56,7 @@ class Pixelflut(QtGui.QDialog):
 	def doDraw(self):
 		try:
 			s = socket()
-			s.connect((sys.argv[0], int(sys.argv[1])))
+			s.connect((sys.argv[1], int(sys.argv[2])))
 			s.send(bytes(self.json.encode({"user": self.username.text(),
 											   "x": int(self.x.text()),
 											   "y": int(self.y.text()),
