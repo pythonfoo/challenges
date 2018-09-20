@@ -3,6 +3,10 @@ Challenge
 
 Write a programm that reads 2 txt input file and spit out a list of found words.
 
+The word can appear in the following directions.
+
+`diagonal up`, `left to right`, `diagonal down`, `down`
+
 input
 -----
 
