@@ -33,4 +33,4 @@ http://www.isc.ro/en/commands/lists.html
 
 keepassx wordlist: `eff_large.wordlist`
 
-
+Both lists are sorted alphabetically.
