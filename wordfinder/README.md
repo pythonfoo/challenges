@@ -20,10 +20,11 @@ input
 output
 ------
 
-<word> (<line>,<column>,<length>)
+`<word>,<line>,<column>,<direction>,<length>`
 
 * `<line>`: 0 index, first line in the document is 0
 * `<column>`: 0 index, first column, (left side) is 0
+* `<direction>`: either `'ne'`,`'e'`,`'se'`,`'s'`
 * `<length>`: int minimum 3 characters
 
 References:
