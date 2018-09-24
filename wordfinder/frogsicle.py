@@ -42,32 +42,34 @@ class GridReader(object):
     def mark(self, row, col, length, direction):
         if direction == 'e':
             for i in range(length):
-                self.colorme[row][col + i] = 1
+                self.colorme[row][col + i] += 1
         elif direction == 's':
             for i in range(length):
-                self.colorme[row + i][col] = 1
+                self.colorme[row + i][col] += 1
         elif direction == 'ne':
             for i in range(length):
-                self.colorme[row - i][col + i] = 1
+                self.colorme[row - i][col + i] += 1
         elif direction == 'se':
             for i in range(length):
-                self.colorme[row + i][col + i] = 1
+                self.colorme[row + i][col + i] += 1
         else:
             raise ValueError('direction must be in "e", "s", "ne", "se"')
 
     def row_words(self):
-        for word, row, col in self.get_words(self.row_cols):
+        row_like = copy.deepcopy(self.row_cols)
+        for word, row, col in self.get_words(row_like):
             yield word, row, col, 'e', len(word)
 
     def col_words(self):
-        for word, col, row in self.get_words(transpose(self.row_cols)):
+        col_like = copy.deepcopy(self.row_cols)
+        for word, col, row in self.get_words(transpose(col_like)):
             yield word, row, col, 's', len(word)
 
     def get_diagonal_words(self, row_like):
         out = []
         for substring, ystart, xstart in diagonal(row_like, self.min_len):
             for word, i in words_in_string(substring, self.lookup_dict, self.min_len):
-                out.append((word, ystart + i, xstart + i))
+                out.append((''.join(word), ystart + i, xstart + i))
         return out
 
     def diagonal_down_words(self):
@@ -96,7 +98,15 @@ class GridReader(object):
         return '\n'.join([''.join([x for x in y]) for y in self.row_cols])
 
     def pretty_print(self):
-        return '\n'.join([''.join([str(x) for x in y]) for y in self.colorme])
+        colors = {0: 'grey', 1: 'cyan', 2: 'white', 3: 'red'}
+        #print('\n'.join([''.join([str(x) for x in y]) for y in self.colorme]))
+        for y in range(self.leny):
+            for x in range(self.lenx):
+                c = self.row_cols[y][x]
+                col_i = min(self.colorme[y][x], 3)  # only support up to 4 overlapping words
+                col = colors[col_i]
+                print(colored(c, col), end='')
+            print('')
 
 def get_or_make(a_dict, key):
     if key not in a_dict:
@@ -206,20 +216,32 @@ def main():
     filein = 'eff_large.wordlist'
     words = read_lines(filein)
     lookup_dict, shortest_word = make_lookup_dict(words)
-    for w in ["X", "ABA", "ABACA", "ABARICI", "ABARICIA", "cat", "blobs", "CONCETTO"]:
-        print('{} {}'.format(w, is_word(lookup_dict, w)))
-    print(shortest_word)
-    test_letters = list("ABACAXHFNAHGABARICIXXXXXCAT")
-    found = words_in_string(test_letters, lookup_dict, shortest_word)
-    for w, index in found:
-        print('at {}: {}'.format(index, ''.join(w)))
 
     gr = GridReader('chargrid.txt', lookup_dict, shortest_word)
-    print(gr)
-    print(gr.pretty_print())
+    i = 0
     for sstr in gr.find_all_words():
+        i += 1
         print(sstr)
-    print(gr.pretty_print())
+    print('{} total words found'.format(i))
+    gr.pretty_print()
 
 if __name__ == "__main__":
     main()
+
+
+# remnants from getting it working
+def test_is_word():
+    filein = 'eff_large.wordlist'
+    words = read_lines(filein)
+    lookup_dict, shortest_word = make_lookup_dict(words)
+    for w in ["X", "ABA", "ABACA", "ABARICI", "ABARICIA", "cat", "blobs", "CONCETTO", "ion", "union"]:
+        print('{} {}'.format(w, is_word(lookup_dict, w)))
+
+def test_find_words():
+    filein = 'eff_large.wordlist'
+    words = read_lines(filein)
+    lookup_dict, shortest_word = make_lookup_dict(words)
+    test_letters = list("ABACAXHFNAHGABARICIXXXXXCATUNION")
+    found = words_in_string(test_letters, lookup_dict, shortest_word)
+    for w, index in found:
+        print('at {}: {}'.format(index, ''.join(w)))
