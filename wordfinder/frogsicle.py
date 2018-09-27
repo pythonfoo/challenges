@@ -1,5 +1,6 @@
 import copy
 from termcolor import colored
+import numpy as np
 
 def transpose(l):
     return list(map(list, zip(*l)))  # thanks stack overflow
@@ -114,12 +115,14 @@ def get_or_make(a_dict, key):
     return a_dict[key]
 
 
-def make_lookup_dict(word_iter):
+def make_lookup_dict(word_iter, min_len=2):
     lookup_dict = {}
     shortest = 100
     for word in word_iter:
         shortest = min(len(word), shortest)
         word = [x.lower() for x in word]
+        if len(word) < min_len:
+            continue
         iword = iter(word)
         char = next(iword)
         current = get_or_make(lookup_dict, char)
@@ -213,16 +216,18 @@ def diagonal(mat, min_len=2):
 
 def main():
     #filein = 'test/head500.txt'
-    filein = 'eff_large.wordlist'
+    #filein = 'eff_large.wordlist'
+    filein = "Collins_Scrabble_Words_2015.txt"
     words = read_lines(filein)
-    lookup_dict, shortest_word = make_lookup_dict(words)
-
+    lookup_dict, shortest_word = make_lookup_dict(words, min_len=2)
+    shortest_word = 3
     gr = GridReader('chargrid.txt', lookup_dict, shortest_word)
     i = 0
     for sstr in gr.find_all_words():
         i += 1
         print(sstr)
     print('{} total words found'.format(i))
+    print(np.array(gr.colorme))
     gr.pretty_print()
 
 if __name__ == "__main__":
