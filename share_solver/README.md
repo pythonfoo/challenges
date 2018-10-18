@@ -1,6 +1,8 @@
 ## The Problem description
 
-You get the size of two server groups and a desired target. You should return the weights of both groups to get the desired target share.
+You get the size of two server groups and a desired target for group A in percent (`0` - `100`).
+How should you choose the weights for each individual server of a group (each server of a group has to have the same weight),
+that the combined weights of grooup A are the percentage of the combined weights of all groups.
 
 * The weight have to be integers between `0` and `255`.
 * You should return the solution with the lowest values if there are multiple solutions possible.
