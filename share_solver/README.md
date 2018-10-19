@@ -37,7 +37,7 @@ The weight of all `A` servers is `4` which is `50` of the total way.
 
 ```bash
 pipenv install --dev
-pytest .
+pipenv run pytest .
 ```
 ## How to add a new Solution
 
